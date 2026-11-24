@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}SOC Security Dashboard - Aegis Platform{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-shield-virus text-info me-2"></i> Security Operations Command Center</h3>
+      <p class="text-muted small mb-0">Real-time threat intelligence correlation & AI-prioritized security alert triage.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('reports.export_pdf') }}" class="btn btn-sm btn-cyber-outline">
+        <i class="fa-solid fa-file-pdf me-1"></i> Quick PDF Report
+      </a>
+      <a href="{{ url_for('ai_engine.index') }}" class="btn btn-sm btn-cyber-primary">
+        <i class="fa-solid fa-brain me-1"></i> AI Prioritization Engine
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Metrics Grid -->
+  <div class="row g-3 mb-4">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="cyber-card kpi-card kpi-cyan">
+        <div class="text-muted small fw-semibold text-uppercase">Total Alerts</div>
+        <div class="kpi-value text-info mt-1">{{ total_alerts }}</div>
+        <div class="text-muted mt-2" style="font-size: 0.75rem;">
+          <i class="fa-solid fa-database me-1"></i> Telemetry Ingested
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="cyber-card kpi-card kpi-critical">
+        <div class="text-muted small fw-semibold text-uppercase">Critical Priority</div>
+        <div class="kpi-value text-danger mt-1">{{ crit_count }}</div>
+        <div class="text-danger mt-2" style="font-size: 0.75rem;">
+          <span class="pulse-red me-1"></span> Requires Immediate Action
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="cyber-card kpi-card kpi-high">
+        <div class="text-muted small fw-semibold text-uppercase">High Priority</div>
+        <div class="kpi-value text-warning mt-1">{{ high_count }}</div>
+        <div class="text-warning mt-2" style="font-size: 0.75rem;">
+          <i class="fa-solid fa-triangle-exclamation me-1"></i> Severe Adversary Actions
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="cyber-card kpi-card kpi-medium">
+        <div class="text-muted small fw-semibold text-uppercase">Active Incidents</div>
+        <div class="kpi-value text-primary mt-1">{{ active_incidents }}</div>
+        <div class="text-muted mt-2" style="font-size: 0.75rem;">
+          <i class="fa-solid fa-fire-extinguisher me-1"></i> Under Containment
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="cyber-card kpi-card kpi-low">
+        <div class="text-muted small fw-semibold text-uppercase">Noise Filtered</div>
+        <div class="kpi-value text-success mt-1">{{ noise_reduction_pct }}%</div>
+        <div class="text-success mt-2" style="font-size: 0.75rem;">
+          <i class="fa-solid fa-arrow-down-wide-short me-1"></i> Fatigue Reduced
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="cyber-card kpi-card kpi-cyan">
+        <div class="text-muted small fw-semibold text-uppercase">Avg Risk Score</div>
+        <div class="kpi-value text-white mt-1">{{ avg_risk }}<span class="text-muted fs-6">/100</span></div>
+        <div class="text-muted mt-2" style="font-size: 0.75rem;">
+          <i class="fa-solid fa-calculator me-1"></i> Normalized Threat Index
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Charts Row -->
+  <div class="row g-4 mb-4">
+    <!-- Trend Timeline -->
+    <div class="col-lg-8">
+      <div class="cyber-card p-3 h-100">
+        <div class="cyber-card-header bg-transparent px-0 pt-0 mb-3">
+          <span class="fw-bold text-white"><i class="fa-solid fa-chart-area text-info me-2"></i> Alert Ingestion & Prioritization Trends (7 Days)</span>
+          <span class="badge bg-secondary">Real-time Stream</span>
+        </div>
+        <div style="height: 260px;">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Priority Donut Breakdown -->
+    <div class="col-lg-4">
+      <div class="cyber-card p-3 h-100">
+        <div class="cyber-card-header bg-transparent px-0 pt-0 mb-3">
+          <span class="fw-bold text-white"><i class="fa-solid fa-chart-pie text-info me-2"></i> Priority Classification</span>
+        </div>
+        <div style="height: 260px; position: relative;">
+          <canvas id="priorityChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attack Vectors & MITRE Matrix Heatmap -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="cyber-card p-3 h-100">
+        <div class="cyber-card-header bg-transparent px-0 pt-0 mb-3">
+          <span class="fw-bold text-white"><i class="fa-solid fa-crosshairs text-info me-2"></i> Top Threat Attack Types</span>
+        </div>
+        <div style="height: 240px;">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="cyber-card p-3 h-100">
+        <div class="cyber-card-header bg-transparent px-0 pt-0 mb-3">
+          <span class="fw-bold text-white"><i class="fa-solid fa-network-wired text-info me-2"></i> MITRE ATT&CK Tactics Observed</span>
+        </div>
+        <div style="height: 240px;">
+          <canvas id="mitreChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-time Alerts Stream -->
+  <div class="cyber-card mb-4">
+    <div class="cyber-card-header">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fw-bold text-white"><i class="fa-solid fa-bolt text-warning me-2"></i> Priority Alert Stream (Live Triage Feed)</span>
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Top 10 Recent</span>
+      </div>
+      <a href="{{ url_for('alerts.index') }}" class="btn btn-sm btn-cyber-outline">
+        View All Alerts ({{ total_alerts }}) <i class="fa-solid fa-arrow-right ms-1"></i>
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-cyber align-middle">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Alert ID</th>
+            <th>Timestamp</th>
+            <th>Attack Type</th>
+            <th>Source IP / Indicator</th>
+            <th>Target Asset</th>
+            <th>Risk Score</th>
+            <th>ML Match</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in recent_alerts %}
+          {% set p = a.prioritization %}
+          <tr>
+            <td>
+              {% if p %}
+                <span class="badge {{ p.priority_level|priority_badge }} px-2 py-1">
+                  {{ p.priority_level }}
+                </span>
+              {% else %}
+                <span class="badge bg-secondary">Unscored</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('alerts.detail', alert_id=a.alert_id) }}" class="fw-bold text-info text-decoration-none font-monospace">
+                {{ a.alert_id }}
+              </a>
+            </td>
+            <td class="text-muted small font-monospace">{{ a.timestamp.strftime('%H:%M:%S') if a.timestamp else '' }}</td>
+            <td class="fw-semibold text-white">{{ a.attack_type }}</td>
+            <td>
+              <span class="font-monospace text-warning">{{ a.source_ip }}</span>
+              {% if a.mitre_technique_id %}
+                <span class="badge bg-dark border border-secondary text-info ms-1">{{ a.mitre_technique_id }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="fw-semibold text-white">{{ a.asset_name }}</span>
+              <span class="text-muted small d-block" style="font-size: 0.7rem;">Crit: {{ a.asset_criticality }}</span>
+            </td>
+            <td>
+              {% if p %}
+                <span class="fw-bold" style="color: {{ p.risk_score|risk_color }};">
+                  {{ p.risk_score }}
+                </span>
+                <div class="progress mt-1" style="height: 4px; width: 60px; background-color: #1e293b;">
+                  <div class="progress-bar" role="progressbar" style="width: {{ p.risk_score }}%; background-color: {{ p.risk_score|risk_color }};"></div>
+                </div>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if p %}
+                <span class="text-muted small" title="ML Confidence: {{ p.ml_confidence }}%">
+                  {{ p.ml_priority }} ({{ p.ml_confidence }}%)
+                </span>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge {{ a.status|status_badge }}">{{ a.status }}</span>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('alerts.detail', alert_id=a.alert_id) }}" class="btn btn-cyber-outline" title="Inspect Forensic Details">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </a>
+                <form action="{{ url_for('incidents.create_from_alert', alert_id=a.alert_id) }}" method="POST" class="d-inline">
+                  <button type="submit" class="btn btn-cyber-danger ms-1" title="Promote to Incident">
+                    <i class="fa-solid fa-fire-extinguisher"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

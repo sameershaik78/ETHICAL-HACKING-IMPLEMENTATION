@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}MITRE ATT&CK Matrix - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <a href="{{ url_for('threat_intel.index') }}" class="text-info text-decoration-none small">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to Threat Intel
+      </a>
+      <h3 class="fw-bold text-white mb-0 mt-1"><i class="fa-solid fa-cubes text-info me-2"></i> MITRE ATT&CK Enterprise Matrix</h3>
+      <p class="text-muted small">Adversary Tactics, Techniques, and Common Knowledge integrated with alert detection rules.</p>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    {% for t in tactics %}
+    <div class="col-xl-3 col-lg-4 col-md-6">
+      <div class="cyber-card h-100 p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge bg-dark border border-info text-info font-monospace">{{ t.id }}</span>
+          <span class="text-muted small" style="font-size: 0.7rem;">ENTERPRISE TACTIC</span>
+        </div>
+        <h6 class="text-white fw-bold mb-2">{{ t.name }}</h6>
+        <p class="text-muted small mb-3" style="font-size: 0.8rem; min-height: 48px;">{{ t.description }}</p>
+        
+        <div class="border-top border-secondary pt-2">
+          <span class="text-muted small fw-bold" style="font-size: 0.7rem;">TECHNIQUES IN WORKSPACE:</span>
+          <div class="d-flex flex-wrap gap-1 mt-1">
+            {% for tid, tech in techniques.items() %}
+              {% if tech.tactic == t.name %}
+                <a href="{{ url_for('threat_intel.mitre_detail', technique_id=tech.id) }}" class="badge bg-secondary text-white text-decoration-none">
+                  {{ tech.id }}: {{ tech.name }}
+                </a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

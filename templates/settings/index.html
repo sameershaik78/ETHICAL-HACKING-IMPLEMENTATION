@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}System Settings - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 900px;">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-sliders text-info me-2"></i> System Configuration & API Integration</h3>
+      <p class="text-muted small mb-0">Configure Threat Intelligence API keys, risk scoring baseline weights, and model lifecycle.</p>
+    </div>
+  </div>
+
+  <!-- System Health Card -->
+  <div class="cyber-card p-4 mb-4">
+    <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-heart-pulse text-success me-2"></i> SOC Platform Diagnostics</h5>
+    <div class="row g-3 text-center">
+      <div class="col-md-3">
+        <div class="p-2 rounded bg-dark border border-secondary">
+          <div class="text-muted small">INGESTED ALERTS</div>
+          <div class="fs-4 fw-bold text-info">{{ stats.total_alerts }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-2 rounded bg-dark border border-secondary">
+          <div class="text-muted small">ACTIVE INCIDENTS</div>
+          <div class="fs-4 fw-bold text-warning">{{ stats.total_incidents }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-2 rounded bg-dark border border-secondary">
+          <div class="text-muted small">CACHED IOCS</div>
+          <div class="fs-4 fw-bold text-white">{{ stats.cached_iocs }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-2 rounded bg-dark border border-secondary">
+          <div class="text-muted small">ML MODEL</div>
+          <div class="fs-4 fw-bold text-success">{{ stats.model_status }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Settings Form -->
+  <div class="cyber-card p-4 mb-4">
+    <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-key text-info me-2"></i> Threat Intelligence API Keys</h5>
+    <form method="POST" action="{{ url_for('settings.index') }}">
+      <div class="mb-3">
+        <label class="form-label text-muted small fw-semibold">AbuseIPDB API Key (Optional)</label>
+        <input type="password" name="abuseipdb_api_key" value="{{ settings.abuseipdb_key }}" class="form-control form-cyber font-monospace" placeholder="Enter AbuseIPDB API key for live IP reputation scoring...">
+        <div class="form-text text-muted" style="font-size: 0.75rem;">When empty, the platform automatically uses the built-in curated Threat Intelligence IOC feed.</div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label text-muted small fw-semibold">VirusTotal API Key v3 (Optional)</label>
+        <input type="password" name="virustotal_api_key" value="{{ settings.virustotal_key }}" class="form-control form-cyber font-monospace" placeholder="Enter VirusTotal API key for live domain/hash analysis...">
+      </div>
+
+      <hr class="border-secondary my-4">
+      <h5 class="text-white fw-bold mb-2"><i class="fa-solid fa-weight-scale text-info me-2"></i> Multi-Factor Risk Score Weights</h5>
+      <p class="text-muted small mb-3">Adjust the explainable baseline risk scoring coefficients. Sum of all weights must equal 1.0 (100%).</p>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Alert Severity (Default: 0.25)</label>
+          <input type="number" step="0.01" name="weight_severity" value="{{ settings.w_sev }}" class="form-control form-cyber" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Threat Intel (Default: 0.25)</label>
+          <input type="number" step="0.01" name="weight_threat_intel" value="{{ settings.w_ti }}" class="form-control form-cyber" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Asset Criticality (Default: 0.20)</label>
+          <input type="number" step="0.01" name="weight_asset_criticality" value="{{ settings.w_crit }}" class="form-control form-cyber" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-muted small">Attack Frequency (Default: 0.15)</label>
+          <input type="number" step="0.01" name="weight_attack_frequency" value="{{ settings.w_freq }}" class="form-control form-cyber" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-muted small">Vulnerability Impact (Default: 0.15)</label>
+          <input type="number" step="0.01" name="weight_vuln_impact" value="{{ settings.w_vuln }}" class="form-control form-cyber" required>
+        </div>
+      </div>
+
+      {% if current_user.is_admin %}
+      <button type="submit" class="btn btn-cyber-primary w-100 py-2">
+        <i class="fa-solid fa-floppy-disk me-2"></i> Save System Configuration
+      </button>
+      {% else %}
+      <div class="alert alert-secondary text-center small mb-0">Only SOC Administrators can save system configuration.</div>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Machine Learning Retraining Card -->
+  {% if current_user.is_admin %}
+  <div class="cyber-card p-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="text-white fw-bold mb-1"><i class="fa-solid fa-arrows-rotate text-info me-2"></i> Retrain Random Forest ML Model</h5>
+        <p class="text-muted small mb-0">Re-fits the Random Forest Classifier on synthesized and historical SOC telemetry.</p>
+      </div>
+      <form action="{{ url_for('settings.retrain_model') }}" method="POST">
+        <button type="submit" class="btn btn-cyber-outline">
+          <i class="fa-solid fa-play me-1"></i> Retrain Model
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

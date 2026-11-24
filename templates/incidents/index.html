@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Incident Management - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-fire-extinguisher text-info me-2"></i> Security Incident Management</h3>
+      <p class="text-muted small mb-0">Track active security incidents, assign lead analysts, and document response playbooks.</p>
+    </div>
+  </div>
+
+  <!-- Incident Status Metrics -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="cyber-card p-3 border-start border-danger border-3">
+        <div class="text-muted small fw-semibold text-uppercase">Open Incidents</div>
+        <div class="fs-2 fw-bold text-danger mt-1">{{ open_count }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="cyber-card p-3 border-start border-warning border-3">
+        <div class="text-muted small fw-semibold text-uppercase">In Progress</div>
+        <div class="fs-2 fw-bold text-warning mt-1">{{ progress_count }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="cyber-card p-3 border-start border-info border-3">
+        <div class="text-muted small fw-semibold text-uppercase">Contained</div>
+        <div class="fs-2 fw-bold text-info mt-1">{{ contained_count }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="cyber-card p-3 border-start border-success border-3">
+        <div class="text-muted small fw-semibold text-uppercase">Resolved</div>
+        <div class="fs-2 fw-bold text-success mt-1">{{ resolved_count }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incidents Table -->
+  <div class="cyber-card mb-4">
+    <div class="cyber-card-header">
+      <span class="text-white fw-bold">Active Incidents ({{ incidents|length }})</span>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('incidents.index') }}" class="btn btn-sm btn-cyber-outline {% if not status_filter %}active{% endif %}">All</a>
+        <a href="{{ url_for('incidents.index', status='Open') }}" class="btn btn-sm btn-cyber-outline {% if status_filter == 'Open' %}active{% endif %}">Open</a>
+        <a href="{{ url_for('incidents.index', status='In Progress') }}" class="btn btn-sm btn-cyber-outline {% if status_filter == 'In Progress' %}active{% endif %}">In Progress</a>
+        <a href="{{ url_for('incidents.index', status='Resolved') }}" class="btn btn-sm btn-cyber-outline {% if status_filter == 'Resolved' %}active{% endif %}">Resolved</a>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-cyber align-middle">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Incident ID</th>
+            <th>Incident Title</th>
+            <th>Status</th>
+            <th>Assigned Analyst</th>
+            <th>Linked Alerts</th>
+            <th>Last Updated</th>
+            <th class="text-end">Manage</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inc in incidents %}
+          <tr>
+            <td>
+              <span class="badge {{ inc.priority|priority_badge }} px-2 py-1">{{ inc.priority }}</span>
+            </td>
+            <td>
+              <a href="{{ url_for('incidents.detail', incident_id=inc.incident_id) }}" class="fw-bold text-info font-monospace text-decoration-none">
+                {{ inc.incident_id }}
+              </a>
+            </td>
+            <td>
+              <div class="fw-semibold text-white">{{ inc.title }}</div>
+              <div class="text-muted small text-truncate" style="max-width: 320px;">{{ inc.description }}</div>
+            </td>
+            <td>
+              <span class="badge {{ inc.status|status_badge }}">{{ inc.status }}</span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-1 text-white">
+                <i class="fa-solid fa-user-circle text-muted"></i>
+                <span>{{ inc.assignee.full_name if inc.assignee else 'Unassigned' }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-dark border border-secondary text-info">{{ inc.alerts|length }} Alerts</span>
+            </td>
+            <td class="text-muted small">{{ inc.updated_at.strftime('%Y-%m-%d %H:%M') if inc.updated_at else '' }}</td>
+            <td class="text-end">
+              <a href="{{ url_for('incidents.detail', incident_id=inc.incident_id) }}" class="btn btn-sm btn-cyber-primary">
+                Workspace <i class="fa-solid fa-arrow-right ms-1"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

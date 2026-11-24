@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Reports & Exports - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-file-shield text-info me-2"></i> SOC Threat Reports & Data Exports</h3>
+      <p class="text-muted small mb-0">Generate executive summary reports, audit documentation, and technical CSV exports.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('reports.export_csv', priority=priority_filter) }}" class="btn btn-cyber-outline">
+        <i class="fa-solid fa-file-csv me-1"></i> Export Tabular CSV
+      </a>
+      <a href="{{ url_for('reports.export_pdf') }}" class="btn btn-cyber-primary">
+        <i class="fa-solid fa-file-pdf me-1"></i> Download PDF Executive Report
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="cyber-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('reports.index') }}" class="row g-2 align-items-center">
+      <div class="col-md-4">
+        <select name="priority" class="form-select form-cyber">
+          <option value="">All Priorities</option>
+          <option value="Critical" {% if priority_filter == 'Critical' %}selected{% endif %}>Critical Priority Only</option>
+          <option value="High" {% if priority_filter == 'High' %}selected{% endif %}>High Priority Only</option>
+          <option value="Medium" {% if priority_filter == 'Medium' %}selected{% endif %}>Medium Priority Only</option>
+          <option value="Low" {% if priority_filter == 'Low' %}selected{% endif %}>Low Priority Only</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <select name="status" class="form-select form-cyber">
+          <option value="">All Statuses</option>
+          <option value="New" {% if status_filter == 'New' %}selected{% endif %}>New</option>
+          <option value="Under Investigation" {% if status_filter == 'Under Investigation' %}selected{% endif %}>Under Investigation</option>
+          <option value="Escalated" {% if status_filter == 'Escalated' %}selected{% endif %}>Escalated</option>
+          <option value="Closed" {% if status_filter == 'Closed' %}selected{% endif %}>Closed</option>
+        </select>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-cyber-primary flex-grow-1">Filter Report Data</button>
+        <a href="{{ url_for('reports.index') }}" class="btn btn-cyber-outline">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Preview Table -->
+  <div class="cyber-card mb-4">
+    <div class="cyber-card-header">
+      <span class="text-white fw-bold">Report Preview Table ({{ alerts|length }} Records Shown of {{ total_count }})</span>
+      <span class="text-muted small">Ready for Export</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-cyber align-middle">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Alert ID</th>
+            <th>Attack Type</th>
+            <th>Source IP</th>
+            <th>Target Asset</th>
+            <th>Risk Score</th>
+            <th>ML Match</th>
+            <th>Action Plan</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in alerts %}
+          {% set p = a.prioritization %}
+          <tr>
+            <td>
+              <span class="badge {{ p.priority_level|priority_badge if p else 'bg-secondary' }}">
+                {{ p.priority_level if p else 'N/A' }}
+              </span>
+            </td>
+            <td><span class="font-monospace text-info">{{ a.alert_id }}</span></td>
+            <td class="text-white">{{ a.attack_type }}</td>
+            <td class="font-monospace text-warning">{{ a.source_ip }}</td>
+            <td class="text-white">{{ a.asset_name }}</td>
+            <td>
+              <span class="fw-bold" style="color: {{ p.risk_score|risk_color if p else '#fff' }};">
+                {{ p.risk_score if p else '-' }}
+              </span>
+            </td>
+            <td class="text-muted small">{{ p.ml_priority if p else '-' }} ({{ p.ml_confidence if p else '-' }}%)</td>
+            <td class="text-muted small text-truncate" style="max-width: 250px;">
+              {{ p.recommended_action if p else '-' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SOC Alert Prioritization Platform{% endblock %}</title>
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <!-- Custom Dark SOC Theme -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/soc-theme.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<div class="d-flex">
+  <!-- Sidebar Navigation -->
+  <nav id="sidebar" class="d-flex flex-column flex-shrink-0 p-3">
+    <div class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none px-2">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-shield-halved text-info fs-3"></i>
+        <div>
+          <span class="fs-5 fw-bold text-white tracking-wider d-block">AEGIS SOC</span>
+          <span class="text-xs text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">AI THREAT PLATFORM</span>
+        </div>
+      </div>
+    </div>
+    <hr class="border-secondary my-3">
+    
+    <ul class="nav nav-pills flex-column mb-auto">
+      <li class="nav-item">
+        <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+          <i class="fa-solid fa-gauge-high"></i> Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('alerts.index') }}" class="nav-link {% if 'alerts' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-triangle-exclamation"></i> Security Alerts
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('threat_intel.index') }}" class="nav-link {% if 'threat_intel' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-network-wired"></i> Threat Intelligence
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('ai_engine.index') }}" class="nav-link {% if 'ai_engine' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-brain"></i> AI Prioritization
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('incidents.index') }}" class="nav-link {% if 'incidents' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-fire-extinguisher"></i> Incidents
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('analytics.index') }}" class="nav-link {% if 'analytics' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-chart-line"></i> Analytics
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('reports.index') }}" class="nav-link {% if 'reports' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-file-shield"></i> Reports
+        </a>
+      </li>
+      
+      {% if current_user.is_admin %}
+      <li>
+        <a href="{{ url_for('auth.users') }}" class="nav-link {% if request.endpoint == 'auth.users' %}active{% endif %}">
+          <i class="fa-solid fa-users-gear"></i> User Management
+        </a>
+      </li>
+      {% endif %}
+      
+      <li>
+        <a href="{{ url_for('settings.index') }}" class="nav-link {% if 'settings' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-sliders"></i> Settings
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </a>
+      </li>
+    </ul>
+    
+    <hr class="border-secondary my-2">
+    <!-- User Profile Strip -->
+    <div class="px-2 py-2 d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <div class="rounded-circle bg-info text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.85rem;">
+          {{ current_user.username[:2].upper() }}
+        </div>
+        <div class="overflow-hidden">
+          <a href="{{ url_for('auth.profile') }}" class="text-decoration-none text-white fw-semibold text-truncate d-block" style="font-size: 0.85rem;">
+            {{ current_user.full_name }}
+          </a>
+          <span class="badge {% if current_user.is_admin %}bg-primary{% else %}bg-secondary{% endif %}" style="font-size: 0.65rem;">
+            {{ current_user.role }}
+          </span>
+        </div>
+      </div>
+      <a href="{{ url_for('auth.profile') }}" class="text-muted hover-white" title="Edit Profile">
+        <i class="fa-solid fa-gear"></i>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <div class="flex-grow-1 d-flex flex-column" style="min-width: 0;">
+    <!-- Top Navbar -->
+    <header class="soc-navbar py-2 px-4 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 d-flex align-items-center gap-2">
+          <span class="pulse-red"></span> DEFCON 3: ELEVATED THREAT
+        </span>
+        <span class="text-muted d-none d-md-inline" style="font-size: 0.8rem;">
+          <i class="fa-solid fa-clock me-1"></i> SOC UTC: <span id="soc-clock"></span>
+        </span>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <!-- Quick Threat Lookup Form -->
+        <form action="{{ url_for('threat_intel.lookup') }}" method="GET" class="d-none d-lg-flex align-items-center">
+          <div class="input-group input-group-sm">
+            <input type="text" name="q" class="form-control form-cyber" placeholder="Quick IOC search (IP, Hash, Domain)..." style="width: 250px;">
+            <button class="btn btn-cyber-primary" type="submit">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+          </div>
+        </form>
+
+        <a href="{{ url_for('alerts.new') }}" class="btn btn-sm btn-cyber-primary d-flex align-items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Manual Alert
+        </a>
+        <a href="{{ url_for('alerts.upload') }}" class="btn btn-sm btn-cyber-outline d-flex align-items-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Ingest CSV
+        </a>
+      </div>
+    </header>
+
+    <!-- Flash Messages Container -->
+    <main class="flex-grow-1 p-4" style="background-color: var(--soc-bg-darkest);">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show cyber-card border-0 mb-4" role="alert">
+              <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %} me-2"></i>
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-2 px-4 border-top border-secondary text-muted text-center" style="background-color: var(--soc-bg-dark); font-size: 0.75rem;">
+      AEGIS SOC Platform &copy; 2026. Enterprise Threat Intelligence & AI Prioritization Engine.
+    </footer>
+  </div>
+</div>
+{% else %}
+  <!-- Unauthenticated Layout (Login / Register) -->
+  <main class="min-vh-100 d-flex align-items-center justify-content-center p-3" style="background: radial-gradient(circle at top right, #111827 0%, #070b14 100%);">
+    <div style="width: 100%; max-width: 450px;">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show cyber-card border-0 mb-3" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block auth_content %}{% endblock %}
+    </div>
+  </main>
+{% endif %}
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+  function updateClock() {
+    const el = document.getElementById('soc-clock');
+    if (el) {
+      const now = new Date();
+      el.textContent = now.toUTCString().replace('GMT', 'UTC');
+    }
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

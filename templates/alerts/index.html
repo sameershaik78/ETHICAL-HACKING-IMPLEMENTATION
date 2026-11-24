@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% block title %}Security Alerts - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-triangle-exclamation text-info me-2"></i> Security Alerts Management</h3>
+      <p class="text-muted small mb-0">Browse, filter, and triage incoming security events prioritized by AI & Threat Intelligence.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('alerts.download_template') }}" class="btn btn-sm btn-cyber-outline">
+        <i class="fa-solid fa-download me-1"></i> CSV Template
+      </a>
+      <a href="{{ url_for('alerts.upload') }}" class="btn btn-sm btn-cyber-outline">
+        <i class="fa-solid fa-cloud-arrow-up me-1"></i> Ingest CSV
+      </a>
+      <a href="{{ url_for('alerts.new') }}" class="btn btn-sm btn-cyber-primary">
+        <i class="fa-solid fa-plus me-1"></i> Add Alert
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="cyber-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('alerts.index') }}" class="row g-2 align-items-center">
+      <div class="col-lg-3 col-md-6">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text form-cyber border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+          <input type="text" name="q" value="{{ search }}" class="form-control form-cyber border-start-0" placeholder="Search by IP, Asset, ID, Title...">
+        </div>
+      </div>
+
+      <div class="col-lg-2 col-md-3 col-sm-6">
+        <select name="priority" class="form-select form-select-sm form-cyber">
+          <option value="">All Priorities</option>
+          <option value="Critical" {% if priority_filter == 'Critical' %}selected{% endif %}>Critical Priority</option>
+          <option value="High" {% if priority_filter == 'High' %}selected{% endif %}>High Priority</option>
+          <option value="Medium" {% if priority_filter == 'Medium' %}selected{% endif %}>Medium Priority</option>
+          <option value="Low" {% if priority_filter == 'Low' %}selected{% endif %}>Low Priority</option>
+        </select>
+      </div>
+
+      <div class="col-lg-2 col-md-3 col-sm-6">
+        <select name="status" class="form-select form-select-sm form-cyber">
+          <option value="">All Statuses</option>
+          <option value="New" {% if status_filter == 'New' %}selected{% endif %}>New</option>
+          <option value="Under Investigation" {% if status_filter == 'Under Investigation' %}selected{% endif %}>Under Investigation</option>
+          <option value="Escalated" {% if status_filter == 'Escalated' %}selected{% endif %}>Escalated</option>
+          <option value="Closed" {% if status_filter == 'Closed' %}selected{% endif %}>Closed</option>
+          <option value="False Positive" {% if status_filter == 'False Positive' %}selected{% endif %}>False Positive</option>
+        </select>
+      </div>
+
+      <div class="col-lg-2 col-md-3 col-sm-6">
+        <select name="attack_type" class="form-select form-select-sm form-cyber">
+          <option value="">All Attack Types</option>
+          {% for at in attack_types %}
+            <option value="{{ at }}" {% if attack_filter == at %}selected{% endif %}>{{ at }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-lg-3 col-md-9 col-sm-6 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-cyber-primary flex-grow-1">
+          <i class="fa-solid fa-filter me-1"></i> Apply Filters
+        </button>
+        <a href="{{ url_for('alerts.index') }}" class="btn btn-sm btn-cyber-outline">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Alerts Table -->
+  <div class="cyber-card mb-4">
+    <div class="cyber-card-header">
+      <span class="text-white fw-bold">
+        Alerts Ingested (Showing {{ alerts|length }} of {{ pagination.total }})
+      </span>
+      <span class="text-muted small">Prioritized with Weighted Risk Formula & Random Forest ML</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-cyber align-middle">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Alert ID</th>
+            <th>Timestamp</th>
+            <th>Attack Type</th>
+            <th>Source IP & Port</th>
+            <th>Target Asset</th>
+            <th>Risk Score</th>
+            <th>ML Match</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in alerts %}
+          {% set p = a.prioritization %}
+          <tr>
+            <td>
+              {% if p %}
+                <span class="badge {{ p.priority_level|priority_badge }} px-2 py-1">
+                  {{ p.priority_level }}
+                </span>
+              {% else %}
+                <span class="badge bg-secondary">Unscored</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('alerts.detail', alert_id=a.alert_id) }}" class="fw-bold text-info text-decoration-none font-monospace">
+                {{ a.alert_id }}
+              </a>
+              {% if a.is_simulated %}
+                <span class="badge bg-dark text-muted border border-secondary ms-1" style="font-size: 0.6rem;">SIM</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small font-monospace">{{ a.timestamp.strftime('%Y-%m-%d %H:%M') if a.timestamp else '' }}</td>
+            <td>
+              <div class="fw-semibold text-white">{{ a.attack_type }}</div>
+              <div class="text-muted small text-truncate" style="max-width: 200px;">{{ a.title }}</div>
+            </td>
+            <td>
+              <div class="font-monospace text-warning">{{ a.source_ip }}</div>
+              <div class="text-muted small font-monospace">Port: {{ a.destination_port or 'N/A' }} ({{ a.protocol }})</div>
+            </td>
+            <td>
+              <div class="fw-semibold text-white">{{ a.asset_name }}</div>
+              <span class="badge bg-dark border border-secondary text-light" style="font-size: 0.65rem;">
+                Crit: {{ a.asset_criticality }}
+              </span>
+            </td>
+            <td>
+              {% if p %}
+                <div class="d-flex align-items-center gap-2">
+                  <span class="fw-bold" style="color: {{ p.risk_score|risk_color }};">
+                    {{ p.risk_score }}
+                  </span>
+                  <div class="progress flex-grow-1" style="height: 4px; width: 50px; background-color: #1e293b;">
+                    <div class="progress-bar" role="progressbar" style="width: {{ p.risk_score }}%; background-color: {{ p.risk_score|risk_color }};"></div>
+                  </div>
+                </div>
+                <div class="text-muted small" style="font-size: 0.7rem;">Intel: {{ p.threat_intel_score }}</div>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if p %}
+                <span class="text-muted small">
+                  {{ p.ml_priority }} <span class="text-info">({{ p.ml_confidence }}%)</span>
+                </span>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm badge {{ a.status|status_badge }} dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                  {{ a.status }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark">
+                  <li>
+                    <form action="{{ url_for('alerts.update_status', alert_id=a.alert_id) }}" method="POST">
+                      <input type="hidden" name="status" value="Under Investigation">
+                      <button class="dropdown-item" type="submit">Under Investigation</button>
+                    </form>
+                  </li>
+                  <li>
+                    <form action="{{ url_for('alerts.update_status', alert_id=a.alert_id) }}" method="POST">
+                      <input type="hidden" name="status" value="Escalated">
+                      <button class="dropdown-item" type="submit">Escalate</button>
+                    </form>
+                  </li>
+                  <li>
+                    <form action="{{ url_for('alerts.update_status', alert_id=a.alert_id) }}" method="POST">
+                      <input type="hidden" name="status" value="Closed">
+                      <button class="dropdown-item" type="submit">Close</button>
+                    </form>
+                  </li>
+                  <li>
+                    <form action="{{ url_for('alerts.update_status', alert_id=a.alert_id) }}" method="POST">
+                      <input type="hidden" name="status" value="False Positive">
+                      <button class="dropdown-item" type="submit">Mark False Positive</button>
+                    </form>
+                  </li>
+                </ul>
+              </div>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('alerts.detail', alert_id=a.alert_id) }}" class="btn btn-cyber-outline" title="Inspect">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </a>
+                <form action="{{ url_for('incidents.create_from_alert', alert_id=a.alert_id) }}" method="POST" class="d-inline ms-1">
+                  <button type="submit" class="btn btn-cyber-danger" title="Create Incident">
+                    <i class="fa-solid fa-fire-extinguisher"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="p-3 border-top border-secondary d-flex justify-content-between align-items-center">
+      <span class="text-muted small">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+      <ul class="pagination pagination-sm mb-0">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+          <a class="page-link form-cyber" href="{{ url_for('alerts.index', page=pagination.prev_num, q=search, priority=priority_filter, status=status_filter, attack_type=attack_filter) }}">Previous</a>
+        </li>
+        {% endif %}
+        
+        {% for p_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=1, right_current=2) %}
+          {% if p_num %}
+            <li class="page-item {% if p_num == pagination.page %}active{% endif %}">
+              <a class="page-link form-cyber {% if p_num == pagination.page %}bg-info border-info text-dark fw-bold{% endif %}" href="{{ url_for('alerts.index', page=p_num, q=search, priority=priority_filter, status=status_filter, attack_type=attack_filter) }}">{{ p_num }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link form-cyber">…</span></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <li class="page-item">
+          <a class="page-link form-cyber" href="{{ url_for('alerts.index', page=pagination.next_num, q=search, priority=priority_filter, status=status_filter, attack_type=attack_filter) }}">Next</a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

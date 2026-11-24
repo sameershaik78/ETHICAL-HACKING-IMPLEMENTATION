@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Register Analyst - Aegis SOC{% endblock %}
+
+{% block auth_content %}
+<div class="cyber-card p-4 shadow-lg border border-secondary">
+  <div class="text-center mb-3">
+    <i class="fa-solid fa-user-plus text-info fs-2 mb-2"></i>
+    <h4 class="fw-bold text-white mb-0">SOC Analyst Registration</h4>
+    <p class="text-muted small">Create credentials for the Security Operations Center</p>
+  </div>
+
+  <form method="POST" action="{{ url_for('auth.register') }}">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-semibold">Full Name</label>
+      <input type="text" name="full_name" class="form-control form-cyber" placeholder="Jane Doe" required>
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-6">
+        <label class="form-label text-muted small fw-semibold">Username</label>
+        <input type="text" name="username" class="form-control form-cyber" placeholder="jdoe" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label text-muted small fw-semibold">Role</label>
+        <select name="role" class="form-select form-cyber">
+          <option value="SOC Analyst" selected>SOC Analyst</option>
+          <option value="Admin">SOC Administrator</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-semibold">Corporate Email</label>
+      <input type="email" name="email" class="form-control form-cyber" placeholder="analyst@soc.corp" required>
+    </div>
+
+    <div class="row g-2 mb-4">
+      <div class="col-md-6">
+        <label class="form-label text-muted small fw-semibold">Password</label>
+        <input type="password" name="password" class="form-control form-cyber" placeholder="Min. 8 characters" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label text-muted small fw-semibold">Confirm Password</label>
+        <input type="password" name="confirm_password" class="form-control form-cyber" placeholder="Repeat password" required>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-cyber-primary w-100 py-2">
+      <i class="fa-solid fa-id-badge me-2"></i> Register SOC Account
+    </button>
+  </form>
+
+  <div class="text-center mt-3">
+    <a href="{{ url_for('auth.login') }}" class="text-info text-decoration-none small">
+      Already have an account? Sign in
+    </a>
+  </div>
+</div>
+{% endblock %}

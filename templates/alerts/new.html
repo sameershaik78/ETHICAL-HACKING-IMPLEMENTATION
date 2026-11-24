@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}Add Security Alert - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 900px;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <a href="{{ url_for('alerts.index') }}" class="text-info text-decoration-none small">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to Alerts
+      </a>
+      <h3 class="fw-bold text-white mb-0 mt-1"><i class="fa-solid fa-plus-circle text-info me-2"></i> Manual Security Alert Ingestion</h3>
+      <p class="text-muted small">Input incoming alert telemetry. The AI engine will automatically correlate Threat Intel & compute Risk Score.</p>
+    </div>
+  </div>
+
+  <div class="cyber-card p-4">
+    <form method="POST" action="{{ url_for('alerts.new') }}">
+      <div class="mb-3">
+        <label class="form-label text-muted small fw-semibold">Alert Title / Summary</label>
+        <input type="text" name="title" class="form-control form-cyber" placeholder="e.g. Cobalt Strike C2 Beacon to Hostile External IP" required>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label text-muted small fw-semibold">Attack Type</label>
+          <select name="attack_type" class="form-select form-cyber" required>
+            <option value="C2 Beaconing">C2 Beaconing</option>
+            <option value="Ransomware">Ransomware</option>
+            <option value="Brute Force">Brute Force</option>
+            <option value="SQL Injection">SQL Injection</option>
+            <option value="Phishing">Phishing</option>
+            <option value="Port Scan">Port Scan</option>
+            <option value="Data Exfiltration">Data Exfiltration</option>
+            <option value="Privilege Escalation">Privilege Escalation</option>
+            <option value="Malware Execution">Malware Execution</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-muted small fw-semibold">Reported Raw Severity</label>
+          <select name="raw_severity" class="form-select form-cyber" required>
+            <option value="Critical">Critical</option>
+            <option value="High" selected>High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label text-muted small fw-semibold">Source IP Address</label>
+          <input type="text" name="source_ip" class="form-control form-cyber font-monospace" placeholder="185.220.101.5" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-muted small fw-semibold">Destination IP Address</label>
+          <input type="text" name="destination_ip" class="form-control form-cyber font-monospace" placeholder="10.0.1.15" required>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label text-muted small fw-semibold">Destination Port</label>
+          <input type="number" name="destination_port" class="form-control form-cyber font-monospace" placeholder="443" value="443">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small fw-semibold">Protocol</label>
+          <select name="protocol" class="form-select form-cyber">
+            <option value="TCP">TCP</option>
+            <option value="UDP">UDP</option>
+            <option value="HTTP">HTTP</option>
+            <option value="DNS">DNS</option>
+            <option value="ICMP">ICMP</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small fw-semibold">Burst Event Frequency</label>
+          <input type="number" name="attack_frequency" class="form-control form-cyber" value="5" min="1">
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label text-muted small fw-semibold">Target Asset Name</label>
+          <input type="text" name="asset_name" class="form-control form-cyber" placeholder="PAYMENT-GATEWAY-01" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-muted small fw-semibold">Asset Criticality</label>
+          <select name="asset_criticality" class="form-select form-cyber" required>
+            <option value="Critical">Critical (Mission Critical)</option>
+            <option value="High" selected>High (Production)</option>
+            <option value="Medium">Medium (Internal)</option>
+            <option value="Low">Low (Development / Test)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label text-muted small fw-semibold">Vulnerability CVE (Optional)</label>
+          <input type="text" name="vulnerability_cve" class="form-control form-cyber font-monospace" placeholder="CVE-2024-3400">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small fw-semibold">MITRE Technique ID (Optional)</label>
+          <input type="text" name="mitre_technique_id" class="form-control form-cyber font-monospace" placeholder="T1071">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small fw-semibold">MITRE Tactic (Optional)</label>
+          <input type="text" name="mitre_tactic" class="form-control form-cyber" placeholder="Command and Control">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label text-muted small fw-semibold">Associated Indicators of Compromise (Comma-separated)</label>
+        <input type="text" name="ioc_indicators" class="form-control form-cyber font-monospace" placeholder="c2-beacon-traffic-relay.top, 185.220.101.5, hash...">
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label text-muted small fw-semibold">Raw Event Payload / Log Snippet</label>
+        <textarea name="raw_payload" rows="3" class="form-control form-cyber font-monospace" placeholder="Paste syslog, netflow or HTTP transaction log snippet..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-cyber-primary w-100 py-2">
+        <i class="fa-solid fa-bolt me-2"></i> Ingest & Automatically Prioritize
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

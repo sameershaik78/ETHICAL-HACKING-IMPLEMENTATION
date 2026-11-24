@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Threat Analytics - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-chart-line text-info me-2"></i> Security Analytics & Threat Visualizations</h3>
+      <p class="text-muted small mb-0">Multi-dimensional operational telemetry: attack distribution, targeted assets, and risk profiles.</p>
+    </div>
+  </div>
+
+  <!-- Top Metrics -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="cyber-card p-3">
+        <div class="text-muted small fw-semibold text-uppercase">Mean Time to Prioritize</div>
+        <div class="fs-2 fw-bold text-info mt-1">1.8 <span class="fs-6 text-muted">sec</span></div>
+        <div class="text-muted small">Instant ML inference</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="cyber-card p-3">
+        <div class="text-muted small fw-semibold text-uppercase">Mean Time to Respond</div>
+        <div class="fs-2 fw-bold text-warning mt-1">14.2 <span class="fs-6 text-muted">min</span></div>
+        <div class="text-muted small">Containment playbooks</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="cyber-card p-3">
+        <div class="text-muted small fw-semibold text-uppercase">Critical & High Ratio</div>
+        <div class="fs-2 fw-bold text-danger mt-1">{{ crit_count + high_count }} <span class="fs-6 text-muted">/ {{ total_alerts }}</span></div>
+        <div class="text-muted small">High impact events</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="cyber-card p-3">
+        <div class="text-muted small fw-semibold text-uppercase">Total Security Incidents</div>
+        <div class="fs-2 fw-bold text-primary mt-1">{{ total_incidents }}</div>
+        <div class="text-muted small">Escalated from alerts</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="cyber-card p-4 h-100">
+        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-chart-column text-info me-2"></i> Risk Score Distribution Buckets</h5>
+        <div style="height: 250px;">
+          <canvas id="riskBucketChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="cyber-card p-4 h-100">
+        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-diagram-project text-info me-2"></i> Incident Lifecycle Distribution</h5>
+        <div style="height: 250px;">
+          <canvas id="incidentStatusChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables Row: Top Attacking IPs & Targeted Assets -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="cyber-card h-100">
+        <div class="cyber-card-header">
+          <span class="text-white fw-bold"><i class="fa-solid fa-user-ninja text-danger me-2"></i> Top Malicious Source IPs</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-cyber align-middle">
+            <thead>
+              <tr>
+                <th>Source IP</th>
+                <th>Alert Count</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ip in top_ips %}
+              <tr>
+                <td class="font-monospace text-warning fw-semibold">{{ ip[0] }}</td>
+                <td class="text-white fw-bold">{{ ip[1] }} events</td>
+                <td>
+                  <a href="{{ url_for('threat_intel.lookup', q=ip[0]) }}" class="btn btn-sm btn-cyber-outline">
+                    Analyze IOC
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="cyber-card h-100">
+        <div class="cyber-card-header">
+          <span class="text-white fw-bold"><i class="fa-solid fa-server text-info me-2"></i> Most Targeted Assets</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-cyber align-middle">
+            <thead>
+              <tr>
+                <th>Asset Name</th>
+                <th>Criticality</th>
+                <th>Alert Volume</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for asset in top_assets %}
+              <tr>
+                <td class="text-white fw-semibold">{{ asset[0] }}</td>
+                <td>
+                  <span class="badge bg-dark border border-secondary text-warning">{{ asset[1] }}</span>
+                </td>
+                <td class="text-white fw-bold">{{ asset[2] }} alerts</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  fetch('/analytics/api/charts')
+    .then(r => r.json())
+    .then(data => {
+      // Risk Buckets
+      const rbCtx = document.getElementById('riskBucketChart');
+      if (rbCtx) {
+        new Chart(rbCtx, {
+          type: 'bar',
+          data: {
+            labels: ['0-19 (Minimal)', '20-39 (Low)', '40-59 (Medium)', '60-79 (High)', '80-100 (Critical)'],
+            datasets: [{
+              label: 'Alerts',
+              data: data.risk_buckets,
+              backgroundColor: ['#10b981', '#34d399', '#3b82f6', '#f59e0b', '#ef4444'],
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+              y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
+            }
+          }
+        });
+      }
+
+      // Incidents Status
+      const incCtx = document.getElementById('incidentStatusChart');
+      if (incCtx) {
+        new Chart(incCtx, {
+          type: 'pie',
+          data: {
+            labels: ['Open', 'In Progress', 'Contained', 'Resolved'],
+            datasets: [{
+              data: data.incidents,
+              backgroundColor: ['#ef4444', '#f59e0b', '#06b6d4', '#10b981'],
+              borderColor: '#121b2f',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#94a3b8' } }
+            }
+          }
+        });
+      }
+    });
+});
+</script>
+{% endblock %}

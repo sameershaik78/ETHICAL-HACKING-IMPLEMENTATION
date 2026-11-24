@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}SOC Login - Aegis Platform{% endblock %}
+
+{% block auth_content %}
+<div class="cyber-card p-4 shadow-lg border border-secondary">
+  <div class="text-center mb-4">
+    <i class="fa-solid fa-shield-halved text-info fs-1 mb-2"></i>
+    <h3 class="fw-bold text-white mb-0">AEGIS SOC</h3>
+    <p class="text-muted small">Threat Intelligence & Alert Prioritization Platform</p>
+  </div>
+
+  <form method="POST" action="{{ url_for('auth.login') }}">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-semibold">Username or Email</label>
+      <div class="input-group">
+        <span class="input-group-text form-cyber border-end-0 text-muted"><i class="fa-solid fa-user"></i></span>
+        <input type="text" name="identifier" class="form-control form-cyber border-start-0" placeholder="admin@soc.corp" required autofocus>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-semibold">Password</label>
+      <div class="input-group">
+        <span class="input-group-text form-cyber border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span>
+        <input type="password" name="password" class="form-control form-cyber border-start-0" placeholder="••••••••••••" required>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="form-check">
+        <input type="checkbox" name="remember" class="form-check-input" id="rememberMe">
+        <label class="form-check-label text-muted small" for="rememberMe">Remember Session</label>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-cyber-primary w-100 py-2">
+      <i class="fa-solid fa-right-to-bracket me-2"></i> Authenticate to Console
+    </button>
+  </form>
+
+  <div class="mt-4 p-3 rounded" style="background-color: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1);">
+    <p class="text-muted small mb-1 fw-bold text-uppercase" style="font-size: 0.7rem;">Demo Credentials:</p>
+    <div class="d-flex justify-content-between text-muted small" style="font-size: 0.75rem;">
+      <span>Admin: <code>admin@soc.corp</code></span>
+      <span>Pass: <code>AdminPassword123!</code></span>
+    </div>
+    <div class="d-flex justify-content-between text-muted small mt-1" style="font-size: 0.75rem;">
+      <span>Analyst: <code>analyst@soc.corp</code></span>
+      <span>Pass: <code>AnalystPassword123!</code></span>
+    </div>
+  </div>
+
+  <div class="text-center mt-3">
+    <a href="{{ url_for('auth.register') }}" class="text-info text-decoration-none small">
+      Need an analyst account? Register here
+    </a>
+  </div>
+</div>
+{% endblock %}

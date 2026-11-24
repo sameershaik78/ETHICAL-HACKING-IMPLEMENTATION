@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Threat Intelligence - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="fa-solid fa-network-wired text-info me-2"></i> Threat Intelligence & IOC Center</h3>
+      <p class="text-muted small mb-0">Correlate adversary indicators against AbuseIPDB, VirusTotal, and curated SOC knowledgebases.</p>
+    </div>
+    <a href="{{ url_for('threat_intel.mitre_matrix') }}" class="btn btn-sm btn-cyber-primary">
+      <i class="fa-solid fa-cubes me-1"></i> MITRE ATT&CK Matrix Browser
+    </a>
+  </div>
+
+  <!-- Search Hero Box -->
+  <div class="cyber-card p-4 mb-4 text-center" style="background: linear-gradient(180deg, #121b2f 0%, #0d1322 100%);">
+    <h4 class="text-white fw-bold mb-2">Live Indicator of Compromise (IOC) Lookup</h4>
+    <p class="text-muted small mb-4">Enter an IP address, domain name, SHA256/MD5 file hash, or URL for deep reputation intelligence.</p>
+
+    <form method="GET" action="{{ url_for('threat_intel.lookup') }}" class="row g-2 justify-content-center">
+      <div class="col-md-7">
+        <div class="input-group">
+          <span class="input-group-text form-cyber border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass-location"></i></span>
+          <input type="text" name="q" class="form-control form-cyber border-start-0 py-2 font-monospace" placeholder="e.g. 185.220.101.5 or c2-beacon-traffic-relay.top or 275a021b..." required>
+          <button type="submit" class="btn btn-cyber-primary px-4">Analyze IOC</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="mt-3 text-muted small">
+      <span class="me-2">Quick tests:</span>
+      <a href="{{ url_for('threat_intel.lookup', q='185.220.101.5') }}" class="badge bg-dark border border-secondary text-info text-decoration-none me-1">Tor C2 Node</a>
+      <a href="{{ url_for('threat_intel.lookup', q='45.33.32.156') }}" class="badge bg-dark border border-secondary text-warning text-decoration-none me-1">Mirai Botnet</a>
+      <a href="{{ url_for('threat_intel.lookup', q='login-microsoftonline-verify.cc') }}" class="badge bg-dark border border-secondary text-danger text-decoration-none me-1">Phishing Domain</a>
+      <a href="{{ url_for('threat_intel.lookup', q='8.8.8.8') }}" class="badge bg-dark border border-secondary text-success text-decoration-none">Google DNS (Clean)</a>
+    </div>
+  </div>
+
+  <!-- Cached IOCs Table -->
+  <div class="cyber-card mb-4">
+    <div class="cyber-card-header">
+      <span class="text-white fw-bold"><i class="fa-solid fa-database text-info me-2"></i> Known Threat Intelligence Feeds & Cached Indicators</span>
+      <span class="badge bg-secondary">{{ cached_iocs|length }} Verified Feeds</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-cyber align-middle">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Indicator Value</th>
+            <th>Reputation Score</th>
+            <th>Engines Flagged</th>
+            <th>Threat Labels</th>
+            <th>Source Provider</th>
+            <th class="text-end">Inspect</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ioc in cached_iocs %}
+          <tr>
+            <td>
+              <span class="badge bg-dark border border-secondary text-uppercase text-info">{{ ioc.indicator_type }}</span>
+            </td>
+            <td>
+              <span class="font-monospace text-white fw-semibold">{{ ioc.indicator_value }}</span>
+            </td>
+            <td>
+              <span class="fw-bold" style="color: {{ ioc.reputation_score|risk_color }};">
+                {{ ioc.reputation_score }}/100
+              </span>
+            </td>
+            <td>
+              <span class="text-muted small">
+                {{ ioc.malicious_count }} / {{ ioc.total_engines }}
+              </span>
+            </td>
+            <td>
+              <span class="text-warning small">{{ ioc.threat_labels or 'Malicious Infrastructure' }}</span>
+            </td>
+            <td>
+              <span class="badge bg-secondary">{{ ioc.source_provider }}</span>
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('threat_intel.lookup', q=ioc.indicator_value) }}" class="btn btn-sm btn-cyber-outline">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

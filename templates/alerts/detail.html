@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}Alert {{ alert.alert_id }} - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Breadcrumb & Top Bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <a href="{{ url_for('alerts.index') }}" class="text-info text-decoration-none small">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to Alerts
+      </a>
+      <h3 class="fw-bold text-white mb-0 mt-1">
+        <span class="font-monospace text-info me-2">{{ alert.alert_id }}</span>: {{ alert.title }}
+      </h3>
+    </div>
+    <div class="d-flex gap-2">
+      <form action="{{ url_for('incidents.create_from_alert', alert_id=alert.alert_id) }}" method="POST">
+        <button type="submit" class="btn btn-cyber-danger">
+          <i class="fa-solid fa-fire-extinguisher me-2"></i> Promote to Incident
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% set p = alert.prioritization %}
+
+  <div class="row g-4">
+    <!-- Left Column: Core Technical Inspection -->
+    <div class="col-lg-8">
+      <!-- Network Flow Card -->
+      <div class="cyber-card p-4 mb-4">
+        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-arrows-split-up-and-left text-info me-2"></i> Network Flow & Asset Context</h5>
+        <div class="row g-3 align-items-center text-center p-3 rounded" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--soc-border);">
+          <div class="col-md-5">
+            <div class="text-muted small">SOURCE HOST (EXTERNAL / ADVERSARY)</div>
+            <div class="fs-5 fw-bold text-warning font-monospace">{{ alert.source_ip }}</div>
+            <div class="text-muted small">Port: {{ alert.source_port or 'Dynamic' }} | Proto: {{ alert.protocol }}</div>
+            <a href="{{ url_for('threat_intel.lookup', q=alert.source_ip) }}" class="btn btn-sm btn-cyber-outline mt-2" target="_blank">
+              <i class="fa-solid fa-magnifying-glass me-1"></i> Threat Intel Lookup
+            </a>
+          </div>
+
+          <div class="col-md-2 my-3 my-md-0">
+            <i class="fa-solid fa-arrow-right-long text-danger fs-3 d-none d-md-inline"></i>
+            <i class="fa-solid fa-arrow-down-long text-danger fs-3 d-md-none"></i>
+            <div class="badge bg-danger mt-1 d-block">{{ alert.attack_type }}</div>
+          </div>
+
+          <div class="col-md-5">
+            <div class="text-muted small">TARGET ASSET (PROTECTED INFRASTRUCTURE)</div>
+            <div class="fs-5 fw-bold text-info font-monospace">{{ alert.destination_ip }}</div>
+            <div class="text-white fw-semibold">{{ alert.asset_name }}</div>
+            <span class="badge bg-dark border border-secondary text-warning mt-1">
+              Criticality: {{ alert.asset_criticality }}
+            </span>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-3 text-muted small">
+          <div class="col-sm-4">
+            <strong>Timestamp:</strong> {{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') if alert.timestamp else 'N/A' }}
+          </div>
+          <div class="col-sm-4">
+            <strong>Attack Frequency:</strong> {{ alert.attack_frequency }} events in burst window
+          </div>
+          <div class="col-sm-4">
+            <strong>Vulnerability CVE:</strong> 
+            {% if alert.vulnerability_cve and alert.vulnerability_cve != 'N/A' %}
+              <span class="badge bg-danger">{{ alert.vulnerability_cve }}</span>
+            {% else %}
+              <span class="text-secondary">None referenced</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- MITRE ATT&CK Mapping Card -->
+      <div class="cyber-card p-4 mb-4">
+        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-network-wired text-info me-2"></i> MITRE ATT&CK Framework Mapping</h5>
+        {% if alert.mitre_technique_id %}
+        <div class="p-3 rounded" style="background-color: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2);">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <span class="badge bg-info text-dark fw-bold me-2">{{ alert.mitre_technique_id }}</span>
+              <span class="fw-bold text-white fs-6">{{ alert.mitre_technique_name }}</span>
+            </div>
+            <span class="badge bg-dark border border-info text-info">Tactic: {{ alert.mitre_tactic }}</span>
+          </div>
+          <a href="{{ url_for('threat_intel.mitre_detail', technique_id=alert.mitre_technique_id) }}" class="btn btn-sm btn-cyber-outline mt-2">
+            View ATT&CK Technique Details & Detection Rules <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i>
+          </a>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No direct MITRE ATT&CK technique was tagged for this alert.</p>
+        {% endif %}
+      </div>
+
+      <!-- Raw Payload / Telemetry -->
+      <div class="cyber-card p-4">
+        <h5 class="text-white fw-bold mb-2"><i class="fa-solid fa-terminal text-info me-2"></i> Raw Event Log / Payload</h5>
+        <p class="text-muted small">Sanitized payload stream captured by network IDS / endpoint sensor.</p>
+        <pre class="code-block mb-0">{{ alert.raw_payload or 'No raw payload content captured for this event.' }}</pre>
+      </div>
+    </div>
+
+    <!-- Right Column: AI Prioritization & Response -->
+    <div class="col-lg-4">
+      <!-- Risk Score Card -->
+      <div class="cyber-card p-4 mb-4">
+        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-brain text-info me-2"></i> AI Prioritization Result</h5>
+        {% if p %}
+        <div class="text-center p-3 rounded mb-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--soc-border);">
+          <div class="text-muted small text-uppercase">Composite Risk Score</div>
+          <div class="display-4 fw-bold my-1" style="color: {{ p.risk_score|risk_color }};">
+            {{ p.risk_score }}
+          </div>
+          <span class="badge {{ p.priority_level|priority_badge }} fs-6 px-3 py-1">
+            {{ p.priority_level }} PRIORITY
+          </span>
+          <div class="text-muted small mt-2">
+            ML Model Prediction: <strong class="text-white">{{ p.ml_priority }}</strong> (Confidence: <strong class="text-info">{{ p.ml_confidence }}%</strong>)
+          </div>
+        </div>
+
+        <!-- Factor Contributions -->
+        <h6 class="text-white fw-bold small text-uppercase mb-2">Explainable Risk Factors</h6>
+        <div class="mb-2">
+          <div class="d-flex justify-content-between text-muted small mb-1">
+            <span>Threat Intelligence (25%)</span>
+            <span class="text-white">{{ p.threat_intel_score }}/100</span>
+          </div>
+          <div class="progress" style="height: 6px; background-color: #1e293b;">
+            <div class="progress-bar bg-info" style="width: {{ p.threat_intel_score }}%;"></div>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <div class="d-flex justify-content-between text-muted small mb-1">
+            <span>Alert Raw Severity (25%)</span>
+            <span class="text-white">{{ p.severity_score }}/100</span>
+          </div>
+          <div class="progress" style="height: 6px; background-color: #1e293b;">
+            <div class="progress-bar bg-danger" style="width: {{ p.severity_score }}%;"></div>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <div class="d-flex justify-content-between text-muted small mb-1">
+            <span>Asset Criticality (20%)</span>
+            <span class="text-white">{{ p.asset_score }}/100</span>
+          </div>
+          <div class="progress" style="height: 6px; background-color: #1e293b;">
+            <div class="progress-bar bg-warning" style="width: {{ p.asset_score }}%;"></div>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <div class="d-flex justify-content-between text-muted small mb-1">
+            <span>Attack Frequency (15%)</span>
+            <span class="text-white">{{ p.frequency_score }}/100</span>
+          </div>
+          <div class="progress" style="height: 6px; background-color: #1e293b;">
+            <div class="progress-bar bg-primary" style="width: {{ p.frequency_score }}%;"></div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between text-muted small mb-1">
+            <span>Vulnerability Impact (15%)</span>
+            <span class="text-white">{{ p.vuln_score }}/100</span>
+          </div>
+          <div class="progress" style="height: 6px; background-color: #1e293b;">
+            <div class="progress-bar bg-secondary" style="width: {{ p.vuln_score }}%;"></div>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-muted">Alert has not been prioritized.</p>
+        {% endif %}
+      </div>
+
+      <!-- Actionable Response Recommendation -->
+      <div class="cyber-card p-4">
+        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-shield-halved text-warning me-2"></i> Recommended Response Action</h5>
+        <div class="p-3 rounded text-white" style="background-color: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.85rem; line-height: 1.5;">
+          {{ p.recommended_action if p else 'Review alert telemetry and correlate with SIEM events.' }}
+        </div>
+
+        <hr class="border-secondary my-3">
+        <h6 class="text-white fw-bold small text-uppercase mb-2">Update Alert Triage Status</h6>
+        <form action="{{ url_for('alerts.update_status', alert_id=alert.alert_id) }}" method="POST">
+          <div class="input-group">
+            <select name="status" class="form-select form-cyber">
+              <option value="New" {% if alert.status == 'New' %}selected{% endif %}>New</option>
+              <option value="Under Investigation" {% if alert.status == 'Under Investigation' %}selected{% endif %}>Under Investigation</option>
+              <option value="Escalated" {% if alert.status == 'Escalated' %}selected{% endif %}>Escalated</option>
+              <option value="Closed" {% if alert.status == 'Closed' %}selected{% endif %}>Closed</option>
+              <option value="False Positive" {% if alert.status == 'False Positive' %}selected{% endif %}>False Positive</option>
+            </select>
+            <button type="submit" class="btn btn-cyber-primary">Update</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

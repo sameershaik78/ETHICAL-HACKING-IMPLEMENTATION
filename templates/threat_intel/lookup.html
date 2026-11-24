@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}IOC Lookup: {{ query }} - Aegis SOC{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 900px;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <a href="{{ url_for('threat_intel.index') }}" class="text-info text-decoration-none small">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to Threat Intel
+      </a>
+      <h3 class="fw-bold text-white mb-0 mt-1">
+        <i class="fa-solid fa-shield-virus text-info me-2"></i> IOC Intelligence Report
+      </h3>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="cyber-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('threat_intel.lookup') }}" class="row g-2">
+      <div class="col-md-10">
+        <input type="text" name="q" value="{{ query }}" class="form-control form-cyber font-monospace" placeholder="Search IP, Domain, Hash..." required>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-cyber-primary w-100">Analyze</button>
+      </div>
+    </form>
+  </div>
+
+  {% if result %}
+  <div class="cyber-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-start border-bottom border-secondary pb-3 mb-3">
+      <div>
+        <span class="badge bg-dark border border-secondary text-info text-uppercase me-2">{{ result.type }}</span>
+        <span class="fs-4 fw-bold font-monospace text-white">{{ result.indicator }}</span>
+      </div>
+      <div class="text-end">
+        <div class="text-muted small">Threat Reputation Score</div>
+        <div class="fs-3 fw-bold" style="color: {{ result.reputation_score|risk_color }};">
+          {{ result.reputation_score }}/100
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-3">
+      <div class="col-md-6">
+        <div class="text-muted small mb-1">Threat Classification</div>
+        <div class="text-warning fw-bold">{{ result.threat_labels }}</div>
+      </div>
+      <div class="col-md-6">
+        <div class="text-muted small mb-1">Security Engines Flagging</div>
+        <div class="text-white">{{ result.malicious_count }} / {{ result.total_engines }} vendor engines</div>
+      </div>
+      {% if result.country %}
+      <div class="col-md-6">
+        <div class="text-muted small mb-1">Geolocation / ISP</div>
+        <div class="text-white">{{ result.country }} ({{ result.isp }})</div>
+      </div>
+      {% endif %}
+      <div class="col-md-6">
+        <div class="text-muted small mb-1">Intelligence Source</div>
+        <div class="badge bg-info text-dark">{{ result.source }}</div>
+      </div>
+    </div>
+
+    {% if result.mitre %}
+    <hr class="border-secondary my-4">
+    <h6 class="text-white fw-bold mb-3"><i class="fa-solid fa-network-wired text-info me-2"></i> Associated MITRE ATT&CK Technique</h6>
+    <div class="p-3 rounded" style="background-color: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2);">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-info text-dark fw-bold">{{ result.mitre.id }}</span>
+        <span class="text-white fw-bold">{{ result.mitre.name }}</span>
+        <span class="badge bg-dark border border-secondary text-muted">Tactic: {{ result.mitre.tactic }}</span>
+      </div>
+      <p class="text-muted small mb-2">{{ result.mitre.description }}</p>
+      <a href="{{ url_for('threat_intel.mitre_detail', technique_id=result.mitre.id) }}" class="btn btn-sm btn-cyber-outline">
+        View Detection & Mitigation Guidance <i class="fa-solid fa-arrow-right ms-1"></i>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="cyber-card p-5 text-center text-muted">
+    <i class="fa-solid fa-magnifying-glass fs-1 mb-3"></i>
+    <h5>Enter an indicator above to perform automated threat intelligence analysis.</h5>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
